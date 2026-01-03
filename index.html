@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartPick ERD - Database Schema</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f4f8;
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 15px;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #7f8c8d;
+            margin-bottom: 30px;
+        }
+        .legend {
+            background: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .legend h3 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+        .legend-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+        }
+        .color-users { background: #3498db; }
+        .color-products { background: #27ae60; }
+        .color-cart { background: #9b59b6; }
+        .color-orders { background: #e74c3c; }
+        .color-finance { background: #f39c12; }
+        
+        .diagram-container {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow-x: auto;
+        }
+        .mermaid {
+            display: flex;
+            justify-content: center;
+        }
+        .module-section {
+            margin-top: 40px;
+        }
+        .module-title {
+            color: #2c3e50;
+            border-left: 5px solid #3498db;
+            padding-left: 15px;
+            margin-bottom: 20px;
+        }
+        .cardinality-legend {
+            background: #ecf0f1;
+            padding: 10px 15px;
+            border-radius: 5px;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+        .cardinality-legend code {
+            background: #bdc3c7;
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🗄️ SmartPick Database ERD</h1>
+    <p class="subtitle">Entity Relationship Diagram - Cognitive Commerce Platform</p>
+
+    <div class="legend">
+        <h3>📊 Module Color Legend</h3>
+        <div class="legend-grid">
+            <div class="legend-item">
+                <div class="legend-color color-users"></div>
+                <span><strong>Users & Auth</strong> - Authentication, OTP, Addresses</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color color-products"></div>
+                <span><strong>Products & AI</strong> - Vendors, Products, Categories</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color color-cart"></div>
+                <span><strong>Cart</strong> - Shopping Cart Items</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color color-orders"></div>
+                <span><strong>Orders & Hub</strong> - Orders, Items, Returns, Scans</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color color-finance"></div>
+                <span><strong>Financial</strong> - Transactions, Payouts</span>
+            </div>
+        </div>
+        <div class="cardinality-legend">
+            <strong>Cardinality:</strong> 
+            <code>||--o{</code> One-to-Many (1:N) &nbsp;|&nbsp;
+            <code>||--||</code> One-to-One (1:1) &nbsp;|&nbsp;
+            <code>}o--o{</code> Many-to-Many (N:M) &nbsp;|&nbsp;
+            <code>PK</code> Primary Key &nbsp;|&nbsp;
+            <code>FK</code> Foreign Key
+        </div>
+    </div>
+
+    <!-- FULL ERD DIAGRAM -->
+    <div class="diagram-container">
+        <div class="mermaid">
+erDiagram
+    %% ==========================================
+    %% MODULE 1: USERS & AUTH (Blue)
+    %% ==========================================
+    
+    users {
+        BigInt id PK
+        String phone UK "Critical - Primary Identifier"
+        String password "Nullable - OTP for customers"
+        Boolean is_guest "Lazy registration flag"
+        String last_otp_code
+        String name "Nullable"
+        String email "Nullable"
+        Timestamp created_at
+        Timestamp updated_at
+    }
+
+    otp_logs {
+        BigInt id PK
+        String phone
+        String code "Hashed OTP"
+        String ip_address "Security audit"
+        Timestamp attempted_at
+    }
+
+    user_addresses {
+        BigInt id PK
+        BigInt user_id FK
+        String city
+        String street_address
+        String building_no
+        Boolean is_default
+        Timestamp created_at
+    }
+
+    %% ==========================================
+    %% MODULE 2: PRODUCTS & AI (Green)
+    %% ==========================================
+
+    vendors {
+        BigInt id PK
+        BigInt user_id FK "1:1 with users"
+        String shop_name
+        Boolean is_approved "Admin gatekeeper"
+        Decimal balance_held "Escrow"
+        Decimal balance_available "Withdrawable"
+        Timestamp created_at
+    }
+
+    categories {
+        BigInt id PK
+        BigInt parent_id FK "Self-ref for hierarchy"
+        String name_en
+        String name_ar
+    }
+
+    products {
+        BigInt id PK
+        BigInt vendor_id FK
+        BigInt category_id FK
+        String name_ar
+        String name_en "AI Generated"
+        Text description_ar
+        Text description_en "AI Generated"
+        Decimal price
+        Integer stock
+        JSON vector_embedding "AI Semantic Search"
+        Boolean is_ai_checked "CV Safety Flag"
+        Timestamp created_at
+    }
+
+    %% ==========================================
+    %% MODULE 3: CART (Purple)
+    %% ==========================================
+
+    cart_items {
+        BigInt id PK
+        BigInt user_id FK "Nullable - logged in"
+        String guest_session_id "Nullable - guest"
+        BigInt product_id FK
+        Integer quantity
+        Timestamp created_at
+    }
+
+    %% ==========================================
+    %% MODULE 4: ORDERS & HUB (Red)
+    %% ==========================================
+
+    orders {
+        BigInt id PK
+        String order_number UK "SP-2026-XXXX"
+        BigInt user_id FK
+        Decimal total_amount
+        Enum payment_status "paid, unpaid"
+        JSON shipping_address_snapshot "Frozen address"
+        Timestamp created_at
+    }
+
+    order_items {
+        BigInt id PK
+        BigInt order_id FK
+        BigInt product_id FK
+        BigInt vendor_id FK
+        Integer quantity
+        Decimal unit_price
+        Enum hub_status "pending, vendor_shipped, hub_received, out_for_delivery, delivered, returned"
+        Decimal commission_amount "Platform fee"
+        Decimal vendor_payout_amount "Vendor earnings"
+        Timestamp created_at
+    }
+
+    return_requests {
+        BigInt id PK
+        BigInt order_item_id FK
+        BigInt user_id FK
+        Enum reason "defective, wrong_item, changed_mind"
+        String image_proof_url "Nullable"
+        Enum admin_status "pending, approved, rejected"
+        Text admin_notes
+        Timestamp created_at
+    }
+
+    hub_scans {
+        BigInt id PK
+        BigInt order_item_id FK
+        BigInt admin_id FK "Hub operator"
+        Enum scan_type "receive_from_vendor, ship_to_customer"
+        Timestamp scanned_at
+    }
+
+    %% ==========================================
+    %% MODULE 5: FINANCIAL (Orange)
+    %% ==========================================
+
+    vendor_transactions {
+        BigInt id PK
+        BigInt vendor_id FK
+        Decimal amount "Positive or Negative"
+        Enum status "held, released"
+        Enum type "sale, withdrawal, refund"
+        BigInt order_item_id FK "Nullable - reference"
+        Timestamp created_at
+    }
+
+    payout_requests {
+        BigInt id PK
+        BigInt vendor_id FK
+        Decimal amount
+        Enum status "pending, processed, confirmed"
+        Timestamp requested_at
+        Timestamp processed_at "Nullable"
+        Timestamp confirmed_at "Nullable"
+    }
+
+    %% ==========================================
+    %% RELATIONSHIPS
+    %% ==========================================
+
+    %% Users & Auth Module
+    users ||--o{ user_addresses : "has many"
+    users ||--o{ otp_logs : "generates"
+    
+    %% Products Module
+    users ||--|| vendors : "becomes (1:1)"
+    vendors ||--o{ products : "sells"
+    categories ||--o{ products : "contains"
+    categories ||--o{ categories : "parent-child"
+    
+    %% Cart Module
+    users ||--o{ cart_items : "has"
+    products ||--o{ cart_items : "added to"
+    
+    %% Orders Module
+    users ||--o{ orders : "places"
+    orders ||--o{ order_items : "contains"
+    products ||--o{ order_items : "ordered as"
+    vendors ||--o{ order_items : "fulfills"
+    order_items ||--o{ hub_scans : "scanned"
+    order_items ||--o| return_requests : "may have"
+    users ||--o{ return_requests : "requests"
+    users ||--o{ hub_scans : "performs (admin)"
+    
+    %% Financial Module
+    vendors ||--o{ vendor_transactions : "has"
+    vendors ||--o{ payout_requests : "requests"
+    order_items ||--o| vendor_transactions : "generates"
+        </div>
+    </div>
+
+    <!-- MODULE BREAKDOWN SECTIONS -->
+    <div class="module-section">
+        <h2 class="module-title">📘 Module 1: Users & Auth</h2>
+        <div class="diagram-container">
+            <div class="mermaid">
+erDiagram
+    users {
+        BigInt id PK
+        String phone UK "Critical - Primary Identifier"
+        String password "Nullable - OTP for customers"
+        Boolean is_guest "Lazy registration flag"
+        String last_otp_code
+        String name "Nullable"
+        String email "Nullable"
+        Timestamp created_at
+        Timestamp updated_at
+    }
+
+    otp_logs {
+        BigInt id PK
+        String phone
+        String code "Hashed OTP"
+        String ip_address "Security audit"
+        Timestamp attempted_at
+    }
+
+    user_addresses {
+        BigInt id PK
+        BigInt user_id FK
+        String city
+        String street_address
+        String building_no
+        Boolean is_default
+        Timestamp created_at
+    }
+
+    users ||--o{ user_addresses : "has addresses"
+    users ||--o{ otp_logs : "generates OTPs"
+            </div>
+        </div>
+    </div>
+
+    <div class="module-section">
+        <h2 class="module-title">📗 Module 2: Products & AI</h2>
+        <div class="diagram-container">
+            <div class="mermaid">
+erDiagram
+    vendors {
+        BigInt id PK
+        BigInt user_id FK "1:1 with users"
+        String shop_name
+        Boolean is_approved "Admin gatekeeper"
+        Decimal balance_held "Escrow"
+        Decimal balance_available "Withdrawable"
+        Timestamp created_at
+    }
+
+    categories {
+        BigInt id PK
+        BigInt parent_id FK "Self-ref for hierarchy"
+        String name_en
+        String name_ar
+    }
+
+    products {
+        BigInt id PK
+        BigInt vendor_id FK
+        BigInt category_id FK
+        String name_ar
+        String name_en "AI Generated"
+        Text description_ar
+        Text description_en "AI Generated"
+        Decimal price
+        Integer stock
+        JSON vector_embedding "AI Semantic Search"
+        Boolean is_ai_checked "CV Safety Flag"
+        Timestamp created_at
+    }
+
+    vendors ||--o{ products : "sells"
+    categories ||--o{ products : "contains"
+    categories ||--o{ categories : "has subcategories"
+            </div>
+        </div>
+    </div>
+
+    <div class="module-section">
+        <h2 class="module-title">📕 Module 3 & 4: Cart, Orders & Hub</h2>
+        <div class="diagram-container">
+            <div class="mermaid">
+erDiagram
+    cart_items {
+        BigInt id PK
+        BigInt user_id FK "Nullable"
+        String guest_session_id "Nullable"
+        BigInt product_id FK
+        Integer quantity
+        Timestamp created_at
+    }
+
+    orders {
+        BigInt id PK
+        String order_number UK
+        BigInt user_id FK
+        Decimal total_amount
+        Enum payment_status
+        JSON shipping_address_snapshot
+        Timestamp created_at
+    }
+
+    order_items {
+        BigInt id PK
+        BigInt order_id FK
+        BigInt product_id FK
+        BigInt vendor_id FK
+        Integer quantity
+        Decimal unit_price
+        Enum hub_status
+        Decimal commission_amount
+        Decimal vendor_payout_amount
+        Timestamp created_at
+    }
+
+    return_requests {
+        BigInt id PK
+        BigInt order_item_id FK
+        BigInt user_id FK
+        Enum reason
+        String image_proof_url
+        Enum admin_status
+        Text admin_notes
+        Timestamp created_at
+    }
+
+    hub_scans {
+        BigInt id PK
+        BigInt order_item_id FK
+        BigInt admin_id FK
+        Enum scan_type
+        Timestamp scanned_at
+    }
+
+    orders ||--o{ order_items : "contains"
+    order_items ||--o{ hub_scans : "scanned at"
+    order_items ||--o| return_requests : "may return"
+            </div>
+        </div>
+    </div>
+
+    <div class="module-section">
+        <h2 class="module-title">📙 Module 5: Financial</h2>
+        <div class="diagram-container">
+            <div class="mermaid">
+erDiagram
+    vendors {
+        BigInt id PK
+        Decimal balance_held
+        Decimal balance_available
+    }
+
+    vendor_transactions {
+        BigInt id PK
+        BigInt vendor_id FK
+        Decimal amount
+        Enum status "held, released"
+        Enum type "sale, withdrawal, refund"
+        BigInt order_item_id FK
+        Timestamp created_at
+    }
+
+    payout_requests {
+        BigInt id PK
+        BigInt vendor_id FK
+        Decimal amount
+        Enum status "pending, processed, confirmed"
+        Timestamp requested_at
+        Timestamp processed_at
+        Timestamp confirmed_at
+    }
+
+    vendors ||--o{ vendor_transactions : "earns"
+    vendors ||--o{ payout_requests : "requests"
+            </div>
+        </div>
+    </div>
+
+    <script>
+        mermaid.initialize({ 
+            startOnLoad: true,
+            theme: 'default',
+            er: {
+                useMaxWidth: true,
+                layoutDirection: 'TB'
+            }
+        });
+    </script>
+</body>
+</html>
